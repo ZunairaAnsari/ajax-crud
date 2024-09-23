@@ -53,7 +53,7 @@ class StudentController extends Controller
         }
 
     }
-    
+
     public function show(){
         $students = Student::all();
         return response()->json([
@@ -61,6 +61,48 @@ class StudentController extends Controller
             'data' => $students
         ]);
     }
+
+    public function edit($id){
+        $student = Student::find($id);
+        
+        if($student){
+            return response()->json([
+                'status' => 200,
+                'data' => $student
+             ]);
+        }
+        else{
+            return response()->json([
+                'status' => 404,
+               'message' => 'Student not found'
+            ]);
+        }
+    }
+
+
+    public function update(Request $request, $id) {
+
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:students,email,' . $id,
+            'birthdate' => 'required|date',
+            'password' => 'nullable|string|min:6',
+        ]);
     
+        $student = Student::findOrFail($id);
+        $student->name = $validatedData['name'];
+        $student->email = $validatedData['email'];
+        $student->birthdate = $validatedData['birthdate'];
+        
+        // Only update password if provided
+        if (!empty($validatedData['password'])) {
+            $student->password = bcrypt($validatedData['password']);
+        }
     
+        $student->save();
+    
+        return response()->json(['status' => 200, 'message' => 'Student updated successfully!']);
+    }
+    
+   
 }

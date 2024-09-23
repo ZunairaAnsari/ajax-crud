@@ -50,14 +50,43 @@
 
                 {{-- End of add student modal --}}
 
+                {{-- Edit student modal --}}
+                <div class="modal fade" id="EditStudentModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel">Edit Form</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <ul class="updateForm_errorList" id="updateForm_errorList"></ul>
+                                <input type="hidden" id="student-id">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="edit_name" name="name" placeholder="Enter your name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="edit_email" name="email" placeholder="name@example.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="edit_password" name="password" placeholder="Enter your password">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="birthdate" class="form-label">Birthdate</label>
+                                    <input type="date" class="form-control" id="edit_birthdate" name="birthdate" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary update_student">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {{-- End of edit student modal --}}
 
-                {{-- edit student modal --}}
-
-
-
-
-
-                {{-- end of edit student modal --}}
                 <div class="card-body">
                     <table class="table table-secondary-striped">
                         <thead>
@@ -111,9 +140,92 @@
         $(document).on('click', '.edit-student', function(e) {
             e.preventDefault();
             var studentId = $(this).data('id');
-            // console.log(studentId);
+
+            $.ajax({
+                url: "/editStudent/" + studentId, 
+                type: 'GET',
+                success: function(response) {
+                    if (response.data) {
+                        $('#student-id').val(response.data.id); // Populate the hidden student ID
+                        $('#edit_name').val(response.data.name);
+                        $('#edit_email').val(response.data.email);
+                        $('#edit_password').val(''); 
+                        $('#edit_birthdate').val(response.data.birthdate);
+                        
+                        $('#EditStudentModal').modal('show');
+                    } else {
+                        console.log('No data received');
+                    }
+                },
+                error: function(error) {
+                    console.log('Error fetching student data', error);
+                }
+            });
         });
-          
+
+        // $(document).on('click', '.update_student', function(e) {
+        //     e.preventDefault();
+
+        //     var studentId = $('#student-id').val();
+
+        //     var data = {
+        //         'name': $('#edit_name').val(),
+        //         'email': $('#edit_email').val(),
+        //         'password': $('#edit_password').val(), // Optional, consider not sending if unchanged
+        //         'birthdate': $('#edit_birthdate').val()
+        //     };
+
+        //     $.ajax({
+        //         type: 'PUT',
+        //         url: "/updateStudent/" + studentId,
+        //         data: data,
+        //         dataType: 'json',
+        //         success: function(response) {
+        //             if (response.status == 200) {
+        //                 $('#EditStudentModal').modal('hide');
+        //                 fetchStudent(); // Refresh the student list
+        //                 // Optionally add success message
+        //             }
+        //         },
+        //         error: function(error) {
+        //             console.log('Error updating student', error);
+        //         }
+        //     });
+        // });
+
+        $(document).on('click', '.update_student', function(e) {
+    e.preventDefault();
+
+    var studentId = $('#student-id').val(); // Get the student ID from the hidden input
+
+    var data = {
+        'name': $('#edit_name').val(),
+        'email': $('#edit_email').val(),
+        'password': $('#edit_password').val(), // Send this only if it has changed
+        'birthdate': $('#edit_birthdate').val()
+    };
+
+    $.ajax({
+            type: 'PUT',
+            url: "/updateStudent/" + studentId,
+            data: data,
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 200) {
+                    $('#EditStudentModal').modal('hide');
+                    fetchStudent(); // Refresh the student list
+                    $('#successMessage').html('<li>' + response.message + '</li>').addClass('alert alert-success');
+                } else {
+                    $('#updateForm_errorList').html('<li>' + response.message + '</li>').addClass('alert alert-danger');
+                }
+            },
+            error: function(xhr) {
+                console.log('Error updating student', xhr);
+                $('#updateForm_errorList').html('<li>An unexpected error occurred. Please try again.</li>').addClass('alert alert-danger');
+            }
+        });
+    });
+
 
         $(document).on('click', '.add_student', function(e) {
             e.preventDefault();

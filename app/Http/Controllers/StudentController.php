@@ -54,13 +54,40 @@ class StudentController extends Controller
 
     }
 
-    public function show(){
-        $students = Student::all();
+    // public function show(){
+        
+    //     $students = Student::all();
+    //     return response()->json([
+    //        'status' => 200,
+    //         'data' => $students
+    //     ]);
+    // }
+
+    public function show(Request $request) {
+        $query = Student::query();
+    
+        // Search functionality
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('email', 'LIKE', "%{$search}%")
+                  ->orWhere('birthdate', 'LIKE', "%{$search}%");
+        }
+    
+        // Sorting functionality
+        $sortField = $request->input('sort_field', 'id'); // Default to sorting by ID
+        $sortDirection = $request->input('sort_direction', 'asc'); // Default to ascending order
+        $query->orderBy($sortField, $sortDirection);
+    
+        // Pagination
+        $students = $query->paginate(5); // Change 5 to whatever number you want per page
+    
         return response()->json([
-           'status' => 200,
+            'status' => 200,
             'data' => $students
         ]);
     }
+    
 
     public function edit($id){
         $student = Student::find($id);
@@ -102,6 +129,18 @@ class StudentController extends Controller
         $student->save();
     
         return response()->json(['status' => 200, 'message' => 'Student updated successfully!']);
+    }
+
+    public function delete($id){
+        $student = Student::findOrFail($id);
+      
+        if($student){
+            $student->delete();
+            return response()->json([
+               'status' => 200,
+               'message' => 'Student deleted successfully'
+            ]);
+        }
     }
     
    

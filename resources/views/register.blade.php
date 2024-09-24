@@ -88,6 +88,27 @@
                 {{-- End of edit student modal --}}
 
                 <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 d-flex">
+                            <input type="text" id="search" class="form-control" placeholder="Search students...">
+                            {{-- <button type="button" class="btn btn-primary" id="searchBtn">Search</button> --}}
+                        </div>
+                        <div class="col-md-4">
+                            <select id="sort_field" class="form-control">
+                                <option value="id">Sort by ID</option>
+                                <option value="name">Sort by Name</option>
+                                <option value="email">Sort by Email</option>
+                                <option value="birthdate">Sort by Birthdate</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select id="sort_direction" class="form-control">
+                                <option value="asc">Ascending</option>
+                                <option value="desc">Descending</option>
+                            </select>
+                        </div>
+                    </div>
+                    
                     <table class="table table-secondary-striped">
                         <thead>
                             <tr>
@@ -100,8 +121,11 @@
                         </thead>
                         <tbody id="studentTableBody">
                             <!-- Student Data will be loaded here -->
-                        </tbody>
+                        </tbody> 
                     </table>
+                    <nav>
+                        <ul class="pagination" id="paginationLinks"></ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -115,21 +139,45 @@
     $(document).ready(function() {
         fetchStudent();
 
-        function fetchStudent() {
+        function fetchStudent(page = 1) {
+            let search = $('#search').val();
+            let sortField = $('#sort_field').val();
+            let sortDirection = $('#sort_direction').val();
+
             $.ajax({
                 url: "/getStudents",
                 type: 'GET',
+                data: {
+                    search: search,
+                    sort_field: sortField,
+                    sort_direction: sortDirection,
+                    page: page,  // Pagination
+                },
                 dataType: 'json',
                 success: function(response) {
                     $('#studentTableBody').html('');
-                    $.each(response.data, function(key, student) {
-                        $('#studentTableBody').append('<tr>\
-                            <td>' + student.id + '</td>\
-                            <td>' + student.name + '</td>\
-                            <td>' + student.email + '</td>\
-                            <td>' + student.birthdate + '</td>\
-                            <td><a href="#" class="edit-student btn btn-info btn-sm" data-id="' + student.id + '">Edit</a> | <a href="#" class="delete-student btn btn-warning btn-sm" data-id="' + student.id + '">Delete</a></td></tr>');
-                    });
+                    if (response.data.data.length > 0) {
+                        $.each(response.data.data, function(key, student) {
+                            $('#studentTableBody').append(`
+                                <tr>
+                                    <td>${student.id}</td>
+                                    <td>${student.name}</td>
+                                    <td>${student.email}</td>
+                                    <td>${student.birthdate}</td>
+                                    <td>
+                                        <a href="#" class="edit-student btn btn-info btn-sm" data-id="${student.id}">Edit</a>
+                                        | 
+                                        <a href="#" class="delete-student btn btn-warning btn-sm" data-id="${student.id}">Delete</a>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+
+                        // Render pagination
+                        renderPagination(response.data);
+                    } else {
+                        $('#studentTableBody').append('<tr><td colspan="5" class="text-center">No students found.</td></tr>');
+                    }
                 },
                 error: function(error) {
                     console.log('Error fetching students', error);
@@ -137,21 +185,48 @@
             });
         }
 
+        function renderPagination(data) {
+            $('#paginationLinks').html('');
+            for (let page = 1; page <= data.last_page; page++) {
+                let activeClass = data.current_page == page ? 'active' : '';
+                $('#paginationLinks').append(`
+                    <li class="page-item ${activeClass}">
+                        <a href="#" class="page-link" data-page="${page}">${page}</a>
+                    </li>
+                `);
+            }
+        }
+
+        // Trigger search, sorting, and pagination
+        $(document).on('keyup', '#search', function() {
+            fetchStudent();
+        });
+
+        $(document).on('change', '#sort_field, #sort_direction', function() {
+            fetchStudent();
+        });
+
+        $(document).on('click', '.page-link', function(e) {
+            e.preventDefault();
+            let page = $(this).data('page');
+            fetchStudent(page);
+        });
+
         $(document).on('click', '.edit-student', function(e) {
             e.preventDefault();
             var studentId = $(this).data('id');
 
             $.ajax({
-                url: "/editStudent/" + studentId, 
+                url: "/editStudent/" + studentId,
                 type: 'GET',
                 success: function(response) {
                     if (response.data) {
-                        $('#student-id').val(response.data.id); // Populate the hidden student ID
+                        $('#student-id').val(response.data.id);
                         $('#edit_name').val(response.data.name);
                         $('#edit_email').val(response.data.email);
-                        $('#edit_password').val(''); 
+                        $('#edit_password').val('');
                         $('#edit_birthdate').val(response.data.birthdate);
-                        
+
                         $('#EditStudentModal').modal('show');
                     } else {
                         console.log('No data received');
@@ -163,69 +238,61 @@
             });
         });
 
-        // $(document).on('click', '.update_student', function(e) {
-        //     e.preventDefault();
-
-        //     var studentId = $('#student-id').val();
-
-        //     var data = {
-        //         'name': $('#edit_name').val(),
-        //         'email': $('#edit_email').val(),
-        //         'password': $('#edit_password').val(), // Optional, consider not sending if unchanged
-        //         'birthdate': $('#edit_birthdate').val()
-        //     };
-
-        //     $.ajax({
-        //         type: 'PUT',
-        //         url: "/updateStudent/" + studentId,
-        //         data: data,
-        //         dataType: 'json',
-        //         success: function(response) {
-        //             if (response.status == 200) {
-        //                 $('#EditStudentModal').modal('hide');
-        //                 fetchStudent(); // Refresh the student list
-        //                 // Optionally add success message
-        //             }
-        //         },
-        //         error: function(error) {
-        //             console.log('Error updating student', error);
-        //         }
-        //     });
-        // });
-
         $(document).on('click', '.update_student', function(e) {
-    e.preventDefault();
+            e.preventDefault();
 
-    var studentId = $('#student-id').val(); // Get the student ID from the hidden input
+            var studentId = $('#student-id').val();
+            var data = {
+                'name': $('#edit_name').val(),
+                'email': $('#edit_email').val(),
+                'password': $('#edit_password').val(),
+                'birthdate': $('#edit_birthdate').val()
+            };
 
-    var data = {
-        'name': $('#edit_name').val(),
-        'email': $('#edit_email').val(),
-        'password': $('#edit_password').val(), // Send this only if it has changed
-        'birthdate': $('#edit_birthdate').val()
-    };
-
-    $.ajax({
-            type: 'PUT',
-            url: "/updateStudent/" + studentId,
-            data: data,
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 200) {
-                    $('#EditStudentModal').modal('hide');
-                    fetchStudent(); // Refresh the student list
-                    $('#successMessage').html('<li>' + response.message + '</li>').addClass('alert alert-success');
-                } else {
-                    $('#updateForm_errorList').html('<li>' + response.message + '</li>').addClass('alert alert-danger');
+            $.ajax({
+                type: 'PUT',
+                url: "/updateStudent/" + studentId,
+                data: data,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 200) {
+                        $('#EditStudentModal').modal('hide');
+                        fetchStudent(); // Refresh the student list
+                        $('#successMessage').html('<li>' + response.message + '</li>').addClass('alert alert-success');
+                    } else {
+                        $('#updateForm_errorList').html('<li>' + response.message + '</li>').addClass('alert alert-danger');
+                    }
+                },
+                error: function(xhr) {
+                    console.log('Error updating student', xhr);
+                    $('#updateForm_errorList').html('<li>An unexpected error occurred. Please try again.</li>').addClass('alert alert-danger');
                 }
-            },
-            error: function(xhr) {
-                console.log('Error updating student', xhr);
-                $('#updateForm_errorList').html('<li>An unexpected error occurred. Please try again.</li>').addClass('alert alert-danger');
+            });
+        });
+
+        $(document).on('click', '.delete-student', function(e) {
+            e.preventDefault();
+
+            var studentId = $(this).data('id');
+            if (confirm('Are you sure you want to delete this student?')) {
+                $.ajax({
+                    url: "/deleteStudent/" + studentId,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.status === 200) {
+                            fetchStudent(); // Refresh the student list
+                            $('#successMessage').html('<li>' + response.message + '</li>').addClass('alert alert-success');
+                        } else {
+                            console.log(response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.log('Error deleting student', xhr);
+                        $('#successMessage').html('<li>An error occurred while deleting the student.</li>').addClass('alert alert-danger');
+                    }
+                });
             }
         });
-    });
-
 
         $(document).on('click', '.add_student', function(e) {
             e.preventDefault();
@@ -273,4 +340,5 @@
         });
     });
 </script>
+
 @endsection

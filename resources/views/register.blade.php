@@ -109,7 +109,7 @@
                         </div>
                     </div>
                     
-                    <table class="table table-secondary-striped">
+                    <table class="table table-secondary-striped table-responsive">
                         <thead>
                             <tr>
                                 <th scope="col">Id</th>

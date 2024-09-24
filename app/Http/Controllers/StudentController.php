@@ -10,10 +10,6 @@ class StudentController extends Controller
 {
     //
 
-    public function index(){
-        
-    }
-
     public function create(){
         return view('register');
     }
@@ -54,15 +50,6 @@ class StudentController extends Controller
 
     }
 
-    // public function show(){
-        
-    //     $students = Student::all();
-    //     return response()->json([
-    //        'status' => 200,
-    //         'data' => $students
-    //     ]);
-    // }
-
     public function show(Request $request) {
         $query = Student::query();
     
@@ -75,8 +62,8 @@ class StudentController extends Controller
         }
     
         // Sorting functionality
-        $sortField = $request->input('sort_field', 'id'); // Default to sorting by ID
-        $sortDirection = $request->input('sort_direction', 'asc'); // Default to ascending order
+        $sortField = $request->input('sort_field', 'id');
+        $sortDirection = $request->input('sort_direction', 'asc'); 
         $query->orderBy($sortField, $sortDirection);
     
         // Pagination
